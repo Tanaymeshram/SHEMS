@@ -16,7 +16,7 @@ init_db()
 from ml_engine import ml_engine
 from iot_simulator import iot_simulator
 
-app = Flask(__name__)
+app = Flask(__name__, static_folder="../frontend/dist", static_url_path="/")
 CORS(app)  # Enable Cross-Origin Resource Sharing for modern React integrations
 
 # Global initialization on first request
@@ -42,13 +42,17 @@ def initialize_app():
             iot_simulator.start()
         print("[Flask App] Background initialization complete.")
 
-@app.route("/", methods=["GET"])
-def home():
+@app.route("/api", methods=["GET"])
+def api_home():
     return jsonify({
         "status": "online",
         "system": "Smart Hospital Energy Management System REST API",
         "timestamp": datetime.now().strftime("%Y-%m-%d %H:%M:%S")
     })
+
+@app.route("/", methods=["GET"])
+def index():
+    return send_file(os.path.join(app.static_folder, "index.html"))
 
 # ==========================================
 # 1. AUTHENTICATION MODULE
@@ -448,6 +452,12 @@ def trigger_system_settings():
             return jsonify({"error": str(e)}), 500
             
     return jsonify({"error": "Unsupported system configuration action."}), 400
+
+@app.errorhandler(404)
+def not_found(e):
+    if request.path.startswith("/api/"):
+        return jsonify({"error": "Endpoint not found"}), 404
+    return send_file(os.path.join(app.static_folder, "index.html"))
 
 if __name__ == "__main__":
     # Create required subdirectories first
